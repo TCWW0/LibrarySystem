@@ -4,6 +4,7 @@ import Database.BookDAO;
 import Entrance.ApplicationManager;
 import Structure.Book;
 import Entrance.PageSwitcher;
+import Structure.User;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -32,9 +33,11 @@ public class BookSearchPanel extends BasePage {
     private JTable resultTable;
     private DefaultTableModel tableModel;
     private BookDAO bookDAO;
+    private User currentUser;
 
-    public BookSearchPanel(PageSwitcher pageSwitcher) {
+    public BookSearchPanel(User user,PageSwitcher pageSwitcher) {
         super(pageSwitcher);
+        this.currentUser = user;
         bookDAO = BookDAO.getInstance();
 
         showDefault();  //从构造中抽离，有效且合理，这里是子类的行为，不应该被放到组件的构造中
@@ -170,7 +173,7 @@ public class BookSearchPanel extends BasePage {
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
             frame.setSize(600, 400);
             frame.setLocationRelativeTo(null);
-            frame.setContentPane(new BookSearchPanel(null)); // 测试时可传 null，实际使用时需实现 PageSwitcher
+            frame.setContentPane(new BookSearchPanel(null,null)); // 测试时可传 null，实际使用时需实现 PageSwitcher
             frame.setVisible(true);
         });
     }

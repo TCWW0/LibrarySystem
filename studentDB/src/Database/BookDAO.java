@@ -1,85 +1,70 @@
 package Database;
 import Structure.Book;
-
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
-//查询书籍的子页面底层数据库实现
 public class BookDAO {
-    private static final String URL = "jdbc:mysql://localhost:3306/studentdb";
-    private static final String USER = "root";
-    private static final String PASSWORD = "Tcww3498";
-    private static BookDAO instance;
-    // 允许的列名，防止 SQL 注入
-    private static List<String> validColumns = List.of("title", "author", "category", "isbn");
+    private static volatile BookDAO instance;
+    private static final List<String> validColumns = List.of("title", "author", "category", "isbn");
+    private final DatabaseContext dbContext;  // 依赖 DatabaseContext
 
-    // 获取数据库连接
-    private Connection getConnection() throws SQLException {
-        return DriverManager.getConnection(URL, USER, PASSWORD);
+    // 私有构造函数，通过 DatabaseContext 注入依赖
+    private BookDAO(DatabaseContext dbContext) {
+        this.dbContext = dbContext;
     }
 
-    // 查询书籍,模糊搜索，每一个属性中都进行换一次模糊查询
-    //输入关键字，在书籍的每一个属性进行一次近似地查询属性的
+    // 获取单例实例（依赖 DatabaseContext 的单例）
+    public static BookDAO getInstance() {
+        if (instance == null) {
+            synchronized (BookDAO.class) {
+                if (instance == null) {
+                    instance = new BookDAO(DatabaseContext.getInstance());
+                }
+            }
+        }
+        return instance;
+    }
+
     public List<Book> searchBooks_Fuzzy(String keyword) {
         List<Book> books = new ArrayList<>();
         String sql = "SELECT * FROM books WHERE title LIKE ? OR author LIKE ? OR category LIKE ?";
 
-        try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+        try (PreparedStatement pstmt = dbContext.prepareStatement(sql)) {
+            pstmt.setString(1, "%" + keyword + "%");
+            pstmt.setString(2, "%" + keyword + "%");
+            pstmt.setString(3, "%" + keyword + "%");
 
-            String queryParam = "%" + keyword + "%";
-            stmt.setString(1, queryParam);
-            stmt.setString(2, queryParam);
-            stmt.setString(3, queryParam);
-
-            ResultSet rs = stmt.executeQuery();
-            //对于查询到的序列进行储存到一个列表中返回
-            while (rs.next()) {
-                books.add(new Book(
-                        rs.getInt("id"),
-                        rs.getString("title"),
-                        rs.getString("author"),
-                        rs.getString("category"),
-                        rs.getString("isbn"),
-                        rs.getInt("stock")
-                ));
+            try (ResultSet rs = dbContext.executeQuery(pstmt)) {
+                while (rs.next()) {
+                    books.add(mapBookFromResultSet(rs));
+                }
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            System.err.println("[数据库错误] 模糊查询失败: " + e.getMessage());
         }
         return books;
     }
 
-    public List<Book> searchBooks_Exact(String keyword,String category) {
+    public List<Book> searchBooks_Exact(String keyword, String category) {
         if (!validColumns.contains(category)) {
-            System.out.println("Invalid column name: " + category);
-            return null; // 直接返回空列表，避免 SQL 注入
+            System.err.println("Invalid column name: " + category);
+            return new ArrayList<>(); // 返回空集合而非 null
         }
 
         List<Book> books = new ArrayList<>();
         String sql = "SELECT * FROM books WHERE " + category + " LIKE ?";
 
-        try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+        try (PreparedStatement pstmt = dbContext.prepareStatement(sql)) {
+            pstmt.setString(1, "%" + keyword + "%");
 
-            String queryParam = "%" + keyword + "%";
-            stmt.setString(1, queryParam);
-
-            ResultSet rs = stmt.executeQuery();
-            //对于查询到的序列进行储存到一个列表中返回
-            while (rs.next()) {
-                books.add(new Book(
-                        rs.getInt("id"),
-                        rs.getString("title"),
-                        rs.getString("author"),
-                        rs.getString("category"),
-                        rs.getString("isbn"),
-                        rs.getInt("stock")
-                ));
+            try (ResultSet rs = dbContext.executeQuery(pstmt)) {
+                while (rs.next()) {
+                    books.add(mapBookFromResultSet(rs));
+                }
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            System.err.println("[数据库错误] 精确查询失败: " + e.getMessage());
         }
         return books;
     }
@@ -87,45 +72,36 @@ public class BookDAO {
     public List<Book> showBooks_Default() {
         List<Book> books = new ArrayList<>();
         String sql = "SELECT * FROM books";
-        try(Connection connection=getConnection();
-            PreparedStatement stmt = connection.prepareStatement(sql)
-        ) {
-            ResultSet rs = stmt.executeQuery();
+
+        try (PreparedStatement pstmt = dbContext.prepareStatement(sql);
+             ResultSet rs = dbContext.executeQuery(pstmt)) {
             while (rs.next()) {
-                books.add(new Book(
-                        rs.getInt("id"),
-                        rs.getString("title"),
-                        rs.getString("author"),
-                        rs.getString("category"),
-                        rs.getString("isbn"),
-                        rs.getInt("stock")
-                ));
+                books.add(mapBookFromResultSet(rs));
             }
         } catch (SQLException e) {
-            throw new RuntimeException(e);
+            System.err.println("[数据库错误] 默认查询失败: " + e.getMessage());
         }
         return books;
     }
 
-    private BookDAO() {}
-
-    public static BookDAO getInstance() {
-        if (instance == null) {
-            synchronized (BookDAO.class) {
-                if (instance == null) {
-                    instance = new BookDAO();
-                }
-            }
-        }
-        return instance;
+    // 提取 ResultSet 到 Book 的映射方法
+    private Book mapBookFromResultSet(ResultSet rs) throws SQLException {
+        return new Book(
+                rs.getInt("id"),
+                rs.getString("title"),
+                rs.getString("author"),
+                rs.getString("category"),
+                rs.getString("isbn"),
+                rs.getInt("stock")
+        );
     }
 
     public static void main(String[] args) {
+        // 测试代码无需修改
         BookDAO dao = BookDAO.getInstance();
-        //List<Book> books = dao.searchBooks_Fuzzy("计算机");
-        List<Book> books = dao.searchBooks_Exact("C++","title");
+        List<Book> books = dao.searchBooks_Exact("C++", "title");
         for (Book book : books) {
-            System.out.println(book.toString());
+            System.out.println(book);
         }
     }
 }

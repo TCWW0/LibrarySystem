@@ -33,5 +33,5 @@ public interface SQLOperations {
     boolean delete(PreparedStatement pstmt);              //删除数据
     boolean close();                                       //关闭方法
 
-
+    Connection getConnection()throws SQLException;
 }

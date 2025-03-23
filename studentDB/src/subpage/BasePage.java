@@ -148,7 +148,14 @@ public abstract class BasePage extends JPanel{
     // 创建统一风格的表格
     // 美化后的表格控件
     protected JTable createStyledTable() {
-        JTable table = new JTable();
+        JTable table = new JTable() {
+            //类似于责任链的拦截
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false; // 所有单元格不可编辑
+            }
+        };
+
         table.setBackground(Color.WHITE);
         table.setForeground(Color.BLACK);
         table.setFont(DEFAULT_FONT);
@@ -166,6 +173,12 @@ public abstract class BasePage extends JPanel{
                 BorderFactory.createLineBorder(new Color(0x333333), 1), // 1像素深灰色边框
                 BorderFactory.createEmptyBorder(5, 5, 5, 5)            // 5像素内边距
         ));
+
+        // 禁止用户拖动列
+        table.getTableHeader().setReorderingAllowed(false);
+
+        // 禁止调整列宽
+        table.getTableHeader().setResizingAllowed(false);
 
         return table;
     }

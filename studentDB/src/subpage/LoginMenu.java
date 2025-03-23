@@ -1,9 +1,10 @@
 package subpage;
 
+import Entrance.ApplicationManager;
 import Structure.Query;
 import Database.DatabaseContext;
 import Structure.User;
-
+import Database.LoginDAO;
 
 import javax.swing.*;
 import javax.swing.border.Border;
@@ -51,20 +52,25 @@ public class LoginMenu {
     private static final Color BG_COLOR = Color.WHITE;          // 背景色
     private static final Font LABEL_FONT = new Font("Microsoft YaHei", Font.BOLD, 14);
 
-    private LoginMenuListener listener;
-    private DatabaseContext db;                         //保留一个策略类的使用
+    private LoginSuccessListener listener;                 //登录回调的类的使用
+    //private DatabaseContext db;                         //保留一个策略类的使用
+    private LoginDAO loginDAO;                          //替代原先的上下文类，重构的解耦
     private JFrame myFrame;
     private JTextField usernameField;                   //储存输入的账号数据
     private JPasswordField passwordField;               //储存输入的密码数据
     private JComboBox<String> roleSelector;             //身份选择框
     private JButton loginButton, cancelButton;
 
-    private LoginSuccessListener successListener = null;       //登录回调的类的使用
+    private User user;
+
+    //private LoginSuccessListener successListener = null;
 
     public LoginMenu() {
-        db= DatabaseContext.getInstance();               //获取策略接口
+        //db= DatabaseContext.getInstance();               //获取策略接口
+        loginDAO = new LoginDAO(DatabaseContext.getInstance());
         setBackground();                                //初始化窗口
         addLoginItem();                                 //将对应的控件添加
+
     }
 
     public void setBackground()
@@ -170,44 +176,39 @@ public class LoginMenu {
         }
 
         //使用账号密码创建User对象来进行进一步的操作
-        User user=new User(username,password,role);
-        Query loginAddition=db.loginVerfication(user);
+        user=new User(username,password,role);
+
+        //修改了对应的逻辑，使用一种简单的结构，传入一个目标结构，在方法中对其进行赋值
+        Query loginAddition=loginDAO.loginVerification(user);
         //此语句之后已经登录成功，通知监听器，让监听器通知其他监听者
         handleLogin(loginAddition);
-        //System.out.println(user.toString());
+        System.out.println(user.toString());
         if(listener!=null)
         {
-            listener.onLoginSuccess(user);
+            listener.loginSuccess(user);
+        }
+        else {
+            JOptionPane.showMessageDialog(null, "发生系统错误", "error", JOptionPane.ERROR_MESSAGE);
         }
     }
 
     public void handleLogin(Query loginQuery)
     {
-        if(loginQuery==Query.System_Error)
-        {
-            JOptionPane.showMessageDialog(null,"发生系统错误","error",JOptionPane.ERROR_MESSAGE);
-        }
-        else if(loginQuery==Query.match_Suc_Login)
-        {
-            JOptionPane.showMessageDialog(null,"成功登录账户","success",JOptionPane.INFORMATION_MESSAGE);
-            if(successListener!=null){
-                String username=usernameField.getText();
-                String password=String.valueOf(passwordField.getPassword());
-                String role=roleSelector.getSelectedItem().toString();
-                User user=new User(username,password,role);
-                successListener.loginSuccess(user);
-            }
-        }
-        else if(loginQuery==Query.match_Fail_Create)
-        {
-            JOptionPane.showMessageDialog(null,"初次登录，已自动创建账户","warning",JOptionPane.WARNING_MESSAGE);
-            String username=usernameField.getText();
-            String password=String.valueOf(passwordField.getPassword());
-            String role=roleSelector.getSelectedItem().toString();
-            User user=new User(username,password,role);
-            successListener.loginSuccess(user);
+        switch (loginQuery) {
+            case Query.System_Error:
+                JOptionPane.showMessageDialog(null, "发生系统错误", "error", JOptionPane.ERROR_MESSAGE);
+                break;
+            case Query.match_Suc_Login:
+                JOptionPane.showMessageDialog(null, "欢迎回到系统喵", "欢迎喵", JOptionPane.PLAIN_MESSAGE);
+                break;
+            case Query.match_Fail_Create:
+                JOptionPane.showMessageDialog(null, "初次登录，欢迎喵", "欢迎喵", JOptionPane.INFORMATION_MESSAGE);
+                break;
+            default:
+                    break;
         }
     }
+
 
     private static void customizeComboBox(JComboBox<?> comboBox) {
         // 设置字体
@@ -230,7 +231,7 @@ public class LoginMenu {
     }
 
     public void setLoginSuccessListener(LoginSuccessListener successListener) {
-        this.successListener = successListener;
+        this.listener = (ApplicationManager) successListener;
     }
 
     public void showLoginWindow()
@@ -311,6 +312,5 @@ public class LoginMenu {
     public static void main(String[] args) {
         SwingUtilities.invokeLater(LoginMenu::new);
     }
-
 
 }

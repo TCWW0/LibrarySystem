@@ -4,6 +4,7 @@ import Entrance.PageSwitcher;
 import Entrance.ApplicationManager;
 import Structure.User;
 import subpage.BasePage;
+import subpage.BookSearchPanel;
 import subpage.BorrowPage;
 
 
@@ -16,6 +17,8 @@ public class SimplePageFactory implements PageFactory {
         switch (pageType) {
             case ApplicationManager.PageType.BORROW:
                 return new BorrowPage(CurrentUser, pageSwitcher);
+            case ApplicationManager.PageType.Search:
+                return new BookSearchPanel(CurrentUser, pageSwitcher);
 
             default:
                 throw new IllegalArgumentException("未知界面类型");

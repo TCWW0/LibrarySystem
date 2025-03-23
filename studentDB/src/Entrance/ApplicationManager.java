@@ -43,10 +43,9 @@ public class ApplicationManager implements LoginSuccessListener,PageSwitcher {
 
         //初始时只显示登录页面，不需要显示该主窗口
         mainFrame.setVisible(false);
-        
+
         loginMenu = new LoginMenu();
         loginMenu.setLoginSuccessListener(this);
-
     }
 
     //这里实现页面切换逻辑,
@@ -72,7 +71,6 @@ public class ApplicationManager implements LoginSuccessListener,PageSwitcher {
 
     //回调方法，通过这个来联动非控件的登录页面和控件页面
     //需要注意的是，在此时就传递了接下来所有的子页面所对应的拥有者
-    @Override
     public void loginSuccess(User user) {
         System.out.println("Login success");
         System.out.println("用户 " + user.getUsername() + " 登录成功！");
@@ -93,7 +91,8 @@ public class ApplicationManager implements LoginSuccessListener,PageSwitcher {
     public void registerPages(User user)
     {
         // 创建并存储页面对象,这里的类修改了下继承关系使得对这里的使用兼容
-        BasePage searchPage = new BookSearchPanel(this);
+        //BasePage searchPage = new BookSearchPanel(user,this);
+        BasePage searchPage = pageFactory.createPage(PageType.Search,user,this);
         pages.put(PageType.Search, searchPage);
 
         BasePage borrowPage = pageFactory.createPage(PageType.BORROW, user,this);

@@ -53,7 +53,7 @@ public class MySQLOperations implements SQLOperations {
     }
 
     // 获取数据库连接
-    public static Connection getConnection() throws SQLException {
+    public Connection getConnection() throws SQLException {
         try {
             if (connection == null || connection.isClosed()) {
                 connection = DriverManager.getConnection(URL, USER, PASSWORD);
