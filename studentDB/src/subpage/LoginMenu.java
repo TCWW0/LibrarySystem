@@ -6,7 +6,11 @@ import Structure.User;
 
 
 import javax.swing.*;
+import javax.swing.border.Border;
+import javax.swing.plaf.basic.BasicComboBoxUI;
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 
 /*
     组合优于继承
@@ -42,11 +46,12 @@ import java.awt.*;
 
 public class LoginMenu {
 
-    /*
-    由于C++的习惯，我其实很讨厌这里去转换为局部变量去给GC管理
-     */
-    private LoginMenuListener listener;
+    // 统一样式常量
+    private static final Color MAIN_COLOR = new Color(0x333333); // 主色调
+    private static final Color BG_COLOR = Color.WHITE;          // 背景色
+    private static final Font LABEL_FONT = new Font("Microsoft YaHei", Font.BOLD, 14);
 
+    private LoginMenuListener listener;
     private DatabaseContext db;                         //保留一个策略类的使用
     private JFrame myFrame;
     private JTextField usernameField;                   //储存输入的账号数据
@@ -93,7 +98,11 @@ public class LoginMenu {
         // 用户名
         gbc.gridx = 0;
         gbc.gridy = 1;
-        myFrame.add(new JLabel("用户名:"), gbc);
+        //myFrame.add(new JLabel("用户名:"), gbc);
+        JLabel userLabel = new JLabel("用户名:");
+        userLabel.setFont(LABEL_FONT);
+        userLabel.setForeground(MAIN_COLOR);
+        myFrame.add(userLabel, gbc);
 
         gbc.gridx = 1;
         usernameField = new JTextField(15);
@@ -102,18 +111,21 @@ public class LoginMenu {
         // 密码
         gbc.gridx = 0;
         gbc.gridy = 2;
-        myFrame.add(new JLabel("密码:"), gbc);
+        //myFrame.add(new JLabel("密码:"), gbc);
+        JLabel passwordLabel = new JLabel("密码:");
+        passwordLabel.setFont(LABEL_FONT);
+        passwordLabel.setForeground(MAIN_COLOR);
+        myFrame.add(passwordLabel, gbc);
 
         gbc.gridx = 1;
         passwordField = new JPasswordField(15);
         myFrame.add(passwordField, gbc);
 
-
         // 登录按钮
         gbc.gridx=0;
         gbc.gridy = 3;
         gbc.gridwidth = 1;
-        loginButton = new JButton("登录");
+        loginButton = createStyledButton("登录");
         myFrame.add(loginButton, gbc);
 
         //绑定输入信息处理
@@ -121,7 +133,7 @@ public class LoginMenu {
 
         // 取消按钮
         gbc.gridx = 1;
-        cancelButton = new JButton("取消");
+        cancelButton = createStyledButton("取消");
         myFrame.add(cancelButton, gbc);
 
         cancelButton.addActionListener(e -> {
@@ -189,6 +201,11 @@ public class LoginMenu {
         else if(loginQuery==Query.match_Fail_Create)
         {
             JOptionPane.showMessageDialog(null,"初次登录，已自动创建账户","warning",JOptionPane.WARNING_MESSAGE);
+            String username=usernameField.getText();
+            String password=String.valueOf(passwordField.getPassword());
+            String role=roleSelector.getSelectedItem().toString();
+            User user=new User(username,password,role);
+            successListener.loginSuccess(user);
         }
     }
 
@@ -226,7 +243,74 @@ public class LoginMenu {
         this.myFrame.dispose();
     }
 
+
+    protected JButton createStyledButton(String text) {
+        Font btnFont = new Font("微软雅黑", Font.BOLD, 12);
+
+        JButton button = new JButton(text) {
+
+            // 自定义绘制圆角
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+
+                // 背景绘制
+                if (getModel().isPressed()) {
+                    g2.setColor(new Color(80, 80, 80));  // 按下状态
+                } else if (getModel().isRollover()) {
+                    g2.setColor(new Color(60, 60, 60)); // 悬停状态
+                } else {
+                    g2.setColor(Color.BLACK);          // 默认状态
+                }
+
+                // 绘制圆角矩形背景
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 15, 15);
+
+                super.paintComponent(g2);
+                g2.dispose();
+            }
+
+            // 绘制圆角边框
+            @Override
+            protected void paintBorder(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(Color.WHITE);
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 15, 15);
+                g2.dispose();
+            }
+        };
+
+        // 基础样式设置
+        button.setFont(btnFont);
+        button.setForeground(Color.WHITE);
+        button.setContentAreaFilled(false); // 禁用默认填充
+        button.setBorderPainted(false);     // 禁用默认边框
+        button.setFocusPainted(false);      // 禁用焦点边框
+        button.setOpaque(false);            // 半透明
+
+        button.setMargin(new Insets(2, 10, 2, 10)); // 上、左、下、右的内边距
+
+        // 添加悬停效果监听
+        button.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                button.repaint();
+            }
+            @Override
+            public void mouseExited(MouseEvent e) {
+                button.repaint();
+            }
+        });
+        return button;
+    }
+
+
     public static void main(String[] args) {
         SwingUtilities.invokeLater(LoginMenu::new);
     }
+
+
 }

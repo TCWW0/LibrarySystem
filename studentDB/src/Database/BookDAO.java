@@ -111,13 +111,17 @@ public class BookDAO {
 
     public static BookDAO getInstance() {
         if (instance == null) {
-            instance = new BookDAO();
+            synchronized (BookDAO.class) {
+                if (instance == null) {
+                    instance = new BookDAO();
+                }
+            }
         }
         return instance;
     }
 
     public static void main(String[] args) {
-        BookDAO dao = new BookDAO();
+        BookDAO dao = BookDAO.getInstance();
         //List<Book> books = dao.searchBooks_Fuzzy("计算机");
         List<Book> books = dao.searchBooks_Exact("C++","title");
         for (Book book : books) {

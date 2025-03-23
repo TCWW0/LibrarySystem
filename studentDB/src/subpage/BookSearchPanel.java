@@ -1,10 +1,13 @@
 package subpage;
 
 import Database.BookDAO;
+import Entrance.ApplicationManager;
 import Structure.Book;
+import Entrance.PageSwitcher;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.JTableHeader;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -22,44 +25,105 @@ import java.util.List;
     所以在之后的设计中，我还是得坚持我的考虑
     使用组合关系的设计来代替继承关系的设计
  */
-public class BookSearchPanel extends JPanel {
+
+public class BookSearchPanel extends BasePage {
     private JTextField searchField;
     private JButton searchButton;
     private JTable resultTable;
     private DefaultTableModel tableModel;
     private BookDAO bookDAO;
 
-    public BookSearchPanel() {
-        bookDAO =BookDAO.getInstance();
+    public BookSearchPanel(PageSwitcher pageSwitcher) {
+        super(pageSwitcher);
+        bookDAO = BookDAO.getInstance();
 
-        setLayout(new BorderLayout());
+        showDefault();  //从构造中抽离，有效且合理，这里是子类的行为，不应该被放到组件的构造中
+    }
 
-        // 搜索栏
-        JPanel searchPanel = new JPanel();
-        searchField = new JTextField(20);
-        searchButton = new JButton("搜索");
-        searchPanel.add(new JLabel("关键字:"));
-        searchPanel.add(searchField);
-        searchPanel.add(searchButton);
+    @Override
+    public void onPageShown() {
+        // 可在此处添加页面显示时的刷新逻辑
+    }
 
-        // 表格初始化
-        String[] columnNames = {"ID", "书名", "作者", "类别", "ISBN", "库存"};
-        tableModel = new DefaultTableModel(columnNames, 0);
-        resultTable = new JTable(tableModel);
+    @Override
+    protected void initUI() {
+        setLayout(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(5, 5, 5, 5);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        // 搜索框
+        searchField = createStyledTextField(20);
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.gridwidth = 1;
+        gbc.weightx = 0.9;
+        gbc.fill = GridBagConstraints.BOTH; // 填充空间
+        add(searchField, gbc);
+
+        // 搜索按钮
+        searchButton = createStyledButton("Search");
+        gbc.gridx = 1;
+        gbc.gridy = 0;
+        gbc.gridwidth = 1;
+        gbc.weightx = 0.1;
+        gbc.fill = GridBagConstraints.BOTH; // 填充空间
+        add(searchButton, gbc);
+
+        // 初始化表格模型
+        tableModel = new DefaultTableModel(
+                new Object[]{"ID", "书名", "作者", "分类", "ISBN", "库存"}, 0
+        );
+        resultTable = createStyledTable();
+        resultTable.setModel(tableModel);
+
+        // 设置表头样式
+        JTableHeader header = resultTable.getTableHeader();
+        header.setBackground(Color.WHITE);
+        header.setForeground(Color.BLACK);
+        header.setFont(DEFAULT_FONT);
+        header.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(0x333333), 1), // 1像素深灰色边框
+                BorderFactory.createEmptyBorder(5, 5, 5, 5)            // 5像素内边距
+        ));
+
+        // 结果表格
         JScrollPane scrollPane = new JScrollPane(resultTable);
 
-        add(searchPanel, BorderLayout.NORTH);
-        add(scrollPane, BorderLayout.CENTER);
+        scrollPane.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(0x333333), 1), // 1像素边框
+                BorderFactory.createEmptyBorder(10, 10, 10, 10)        // 10像素内边距
+        ));
 
-        showDefault();
+        scrollPane.setBackground(Color.WHITE);
+        scrollPane.getViewport().setBackground(Color.WHITE);
+
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        gbc.gridwidth = 3;
+        gbc.fill = GridBagConstraints.BOTH;
+        gbc.weightx = 1.0;
+        gbc.weighty = 1.0;
+        add(scrollPane, gbc);
+
+        //showDefault();
+        //这里保留一下，这里又是一次不注意的初始化顺序导致的错误，可以自己解开并去注释掉现有构造中的方法尝试
+
+        // 操作按钮面板
+        JPanel actionPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        actionPanel.setBackground(Color.WHITE);
+
+        JButton borrowBtn = createStyledButton("借阅记录");
+        borrowBtn.addActionListener(e -> pageSwitcher.switchToPage(ApplicationManager.PageType.BORROW));
+        actionPanel.add(borrowBtn);
+
+        gbc.gridy = 2;
+        gbc.weighty = 0.0; // 固定高度
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        add(actionPanel, gbc);
 
         // 绑定查询事件
-        searchButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                searchBooks();
-            }
-        });
+        searchButton.addActionListener(e -> searchBooks());
     }
 
     // 查询并更新表格
@@ -70,9 +134,8 @@ public class BookSearchPanel extends JPanel {
             return;
         }
 
-        //默认使用模糊查询，之后需要在这里进行优化
         List<Book> books = bookDAO.searchBooks_Fuzzy(keyword);
-        tableModel.setRowCount(0);  // 清空表格数据
+        tableModel.setRowCount(0);
 
         for (Book book : books) {
             tableModel.addRow(new Object[]{
@@ -86,8 +149,7 @@ public class BookSearchPanel extends JPanel {
         }
     }
 
-    private void showDefault()
-    {
+    private void showDefault() {
         List<Book> books = bookDAO.showBooks_Default();
         tableModel.setRowCount(0);
         for (Book book : books) {
@@ -108,11 +170,8 @@ public class BookSearchPanel extends JPanel {
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
             frame.setSize(600, 400);
             frame.setLocationRelativeTo(null);
-
-            frame.setContentPane(new BookSearchPanel());
+            frame.setContentPane(new BookSearchPanel(null)); // 测试时可传 null，实际使用时需实现 PageSwitcher
             frame.setVisible(true);
         });
     }
 }
-
-
