@@ -161,7 +161,9 @@ public class DatabaseContext {
     //优化效率，启用事务机制，积累事务一次性提交
     // 开始事务
     public void beginTransaction() throws SQLException {
-        operations.getConnection().setAutoCommit(false);
+        if(operations.getConnection()!=null){
+            operations.getConnection().setAutoCommit(false);
+        }
     }
 
     // 提交事务

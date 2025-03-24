@@ -16,8 +16,8 @@ public class SimplePageFactory implements PageFactory {
     public BasePage createPage(ApplicationManager.PageType pageType, User CurrentUser, PageSwitcher pageSwitcher) {
         switch (pageType) {
             case ApplicationManager.PageType.BORROW:
-                return new BorrowPage(CurrentUser, pageSwitcher);
-            case ApplicationManager.PageType.Search:
+                return BorrowPage.getInstance(CurrentUser, pageSwitcher);
+            case ApplicationManager.PageType.SEARCH:
                 return new BookSearchPanel(CurrentUser, pageSwitcher);
 
             default:

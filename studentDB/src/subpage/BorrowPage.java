@@ -12,6 +12,7 @@ import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.util.List;
+import java.util.Objects;
 
 //每个页面需要绑定一些基本信息，这里指的是对应的使用者信息
 public class BorrowPage extends BasePage {
@@ -19,17 +20,31 @@ public class BorrowPage extends BasePage {
     private final BorrowDAO borrowDAO;
     private JTable borrowTable;
     private DefaultTableModel tableModel;
+    private static volatile BorrowPage instance;
 
-    public BorrowPage(User user, PageSwitcher pageSwitcher) {
+    private BorrowPage(User user, PageSwitcher pageSwitcher) {
         super(pageSwitcher);
         this.currentUser = user;
-        this.borrowDAO=new BorrowDAO(DatabaseContext.getInstance());
+        this.borrowDAO=BorrowDAO.getInstance();
         initUI();
+        loadBorrowRecords();
     }
 
+    public static BorrowPage getInstance(User user, PageSwitcher pageSwitcher) {
+        if (instance == null) {
+            synchronized (BorrowPage.class) {
+                if (instance == null) {
+                    instance = new BorrowPage(user, pageSwitcher);
+                }
+            }
+        }
+        return instance;
+    }
+
+    //每次刷新当前用户的借阅记录
     @Override
     public void onPageShown() {
-
+        loadBorrowRecords();
     }
 
     //初始化子控件
@@ -42,21 +57,32 @@ public class BorrowPage extends BasePage {
         title.setFont(titlefont);
         add(title, BorderLayout.NORTH);
 
-        //借阅表格
-        JTable table=new JTable();
-        JScrollPane scrollPane=new JScrollPane(table);
-        add(scrollPane, BorderLayout.CENTER);
+        //记录表格
+        tableModel=new DefaultTableModel(
+                new Object[]{"借阅ID","借阅人", "图书名", "借阅日期", "应还日期", "归还日期"}, 0
+        );
+        borrowTable=createStyledTable();
+        //注意这里需要在隐藏的代码调用前调用，否则空指针喵
+        borrowTable.setModel(tableModel);
+        //存在对应的ID列但是被隐藏,注意位置避免空指针
+        borrowTable.getColumnModel().getColumn(0).setMinWidth(0); // 隐藏ID列
+        borrowTable.getColumnModel().getColumn(0).setMaxWidth(0);
+        borrowTable.getColumnModel().getColumn(0).setWidth(0);
 
-        //操作按钮
-        JButton returnBtn=createStyledButton("归还图书喵");
-        //add(returnBtn, BorderLayout.SOUTH);
-        btnPanel.add(returnBtn,BorderLayout.SOUTH);
+        JScrollPane scrollPane1=new JScrollPane(borrowTable);
+
+        add(scrollPane1, BorderLayout.CENTER);
+
+        //对应的操作按钮
+        JButton returnBookBtn = createStyledButton("归还图书喵");
+        returnBookBtn.addActionListener(e->handleReturnBook());
+        btnPanel.add(returnBookBtn);
 
         //添加返回按钮
         JButton backBtn=createStyledButton("返回查询页面");
         backBtn.addActionListener(e -> {
             if(pageSwitcher!=null){
-                pageSwitcher.switchToPage(ApplicationManager.PageType.Search);
+                pageSwitcher.switchToPage(ApplicationManager.PageType.SEARCH);
             } else {
                 JOptionPane.showMessageDialog(this,"还没实现抱歉喵");
             }
@@ -66,19 +92,7 @@ public class BorrowPage extends BasePage {
 
         this.add(btnPanel, BorderLayout.SOUTH);
 
-        //记录表格
-        tableModel=new DefaultTableModel(
-                new Object[]{"借阅ID", "图书ID", "借阅日期", "应还日期", "归还日期"}, 0
-        );
-        borrowTable=createStyledTable();
-        borrowTable.setModel(tableModel);
-        JScrollPane scrollPane1=new JScrollPane(borrowTable);
 
-        add(scrollPane1, BorderLayout.CENTER);
-
-        //对应的操作按钮
-        JButton returnBookBtn = createStyledButton("归还图书喵");
-        returnBookBtn.addActionListener(e->handleReturnBook());
     }
 
     private void handleReturnBook() {
@@ -88,7 +102,14 @@ public class BorrowPage extends BasePage {
             return;
         }
 
-        int borrowId = (int) borrowTable.getValueAt(selectedRow, 0); // 第一列是借阅ID
+        Object returnData = borrowTable.getValueAt(selectedRow, 5);
+        // 如果 returnData 不是字符串，说明记录中存放的是日期，意味着已经归还
+        if (!(returnData instanceof String) || !Objects.equals(returnData, "未归还")) {
+            JOptionPane.showMessageDialog(this, "已归还别扒拉","警告",JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
+        int borrowId = (int) borrowTable.getValueAt(selectedRow, 0); // 第一列是借阅ID，注意被隐藏
         int confirm = JOptionPane.showConfirmDialog(
                 this,
                 "确定要归还这本图书吗？",
@@ -120,6 +141,8 @@ public class BorrowPage extends BasePage {
         }
     }
 
+
+    //需要注意的是，这里的方法实现是基于当前登录系统的用户进行一个查询的
     private void loadBorrowRecords() {
         DefaultTableModel model = (DefaultTableModel) borrowTable.getModel();
         model.setRowCount(0); // 清空旧数据
@@ -128,7 +151,8 @@ public class BorrowPage extends BasePage {
         for (BorrowRecord record : records) {
             model.addRow(new Object[]{
                     record.getId(),
-                    record.getBookId(),
+                    this.currentUser.getUsername(),
+                    Book.findById(record.getBookId()),
                     record.getBorrowDate(),
                     record.getDueDate(),
                     record.getReturnDate() == null ? "未归还" : record.getReturnDate()

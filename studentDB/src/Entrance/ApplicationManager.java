@@ -19,7 +19,7 @@ import java.util.Map;
 public class ApplicationManager implements LoginSuccessListener,PageSwitcher {
 
     public enum PageType {
-        Search,
+        SEARCH,
         BORROW
     }
 
@@ -82,7 +82,7 @@ public class ApplicationManager implements LoginSuccessListener,PageSwitcher {
 
         this.mainFrame.setVisible(true);
 
-        showPage(PageType.BORROW);
+        showPage(PageType.SEARCH);
     }
 
     //接下来所有在BasePage类派生出来的类都需要再这里进行注册使用(使用工厂)
@@ -92,14 +92,14 @@ public class ApplicationManager implements LoginSuccessListener,PageSwitcher {
     {
         // 创建并存储页面对象,这里的类修改了下继承关系使得对这里的使用兼容
         //BasePage searchPage = new BookSearchPanel(user,this);
-        BasePage searchPage = pageFactory.createPage(PageType.Search,user,this);
-        pages.put(PageType.Search, searchPage);
+        BasePage searchPage = pageFactory.createPage(PageType.SEARCH,user,this);
+        pages.put(PageType.SEARCH, searchPage);
 
         BasePage borrowPage = pageFactory.createPage(PageType.BORROW, user,this);
         pages.put(PageType.BORROW, borrowPage);
 
         //确保所有页面都被添加到 mainPanel，否则 CardLayout 无法切换
-        mainPanel.add(searchPage, PageType.Search.toString());
+        mainPanel.add(searchPage, PageType.SEARCH.toString());
         mainPanel.add(borrowPage, PageType.BORROW.toString());
 
     }

@@ -96,6 +96,27 @@ public class BookDAO {
         );
     }
 
+    public boolean updateStock(int bookId,int delta)throws SQLException
+    {
+        String sql = "UPDATE books SET stock = stock + ? WHERE id = ?";
+        try (PreparedStatement pstmt = dbContext.prepareStatement(sql)) {
+            pstmt.setInt(1, delta);
+            pstmt.setInt(2, bookId);
+            return dbContext.update(pstmt);
+        }
+    }
+
+    //这里还是有用的，增加这个能够在之后可能的优化，虽然这里单步操作的性能损耗是很大的
+    public Book getBookById(int bookId) throws SQLException {
+        String sql = "SELECT * FROM books WHERE id = ?";
+        try (PreparedStatement pstmt = dbContext.prepareStatement(sql)) {
+            pstmt.setInt(1, bookId);
+            try (ResultSet rs = dbContext.executeQuery(pstmt)) {
+                return rs.next() ? mapBookFromResultSet(rs) : null;
+            }
+        }
+    }
+
     public static void main(String[] args) {
         // 测试代码无需修改
         BookDAO dao = BookDAO.getInstance();

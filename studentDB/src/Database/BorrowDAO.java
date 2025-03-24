@@ -7,9 +7,21 @@ import java.util.List;
 
 public class BorrowDAO {
     private final DatabaseContext dbContext;
+    private static volatile BorrowDAO instance;
 
-    public BorrowDAO(DatabaseContext dbContext) {
+    private BorrowDAO(DatabaseContext dbContext) {
         this.dbContext = dbContext;
+    }
+
+    public static BorrowDAO getInstance() {
+        if (instance == null) {
+            synchronized (BorrowDAO.class) {
+                if (instance == null) {
+                    instance = new BorrowDAO(DatabaseContext.getInstance());
+                }
+            }
+        }
+        return instance;
     }
 
     // 借阅图书

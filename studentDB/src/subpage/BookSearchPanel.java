@@ -1,6 +1,8 @@
 package subpage;
 
 import Database.BookDAO;
+import Database.BorrowDAO;
+import Database.DatabaseContext;
 import Entrance.ApplicationManager;
 import Structure.Book;
 import Entrance.PageSwitcher;
@@ -10,8 +12,8 @@ import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+
+import java.sql.SQLException;
 import java.util.List;
 
 
@@ -46,6 +48,7 @@ public class BookSearchPanel extends BasePage {
     @Override
     public void onPageShown() {
         // 可在此处添加页面显示时的刷新逻辑
+        showDefault();
     }
 
     @Override
@@ -65,7 +68,7 @@ public class BookSearchPanel extends BasePage {
         add(searchField, gbc);
 
         // 搜索按钮
-        searchButton = createStyledButton("Search");
+        searchButton = createStyledButton("SEARCH");
         gbc.gridx = 1;
         gbc.gridy = 0;
         gbc.gridwidth = 1;
@@ -116,9 +119,16 @@ public class BookSearchPanel extends BasePage {
         JPanel actionPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         actionPanel.setBackground(Color.WHITE);
 
-        JButton borrowBtn = createStyledButton("借阅记录");
-        borrowBtn.addActionListener(e -> pageSwitcher.switchToPage(ApplicationManager.PageType.BORROW));
+
+        // 新增借阅按钮
+        JButton borrowBtn = createStyledButton("借阅");
+        //borrowBtn.addActionListener(e -> borrowSelectedBook());
         actionPanel.add(borrowBtn);
+        
+        JButton borrowRecordBtn = createStyledButton("借阅记录");
+        borrowRecordBtn.addActionListener(e -> pageSwitcher.switchToPage(ApplicationManager.PageType.BORROW));
+        actionPanel.add(borrowRecordBtn);
+        borrowBtn.addActionListener(e -> borrowSelectedBook());
 
         gbc.gridy = 2;
         gbc.weighty = 0.0; // 固定高度
@@ -127,6 +137,65 @@ public class BookSearchPanel extends BasePage {
 
         // 绑定查询事件
         searchButton.addActionListener(e -> searchBooks());
+    }
+
+    public void borrowSelectedBook() {
+        if(currentUser == null)
+        {
+            JOptionPane.showMessageDialog(this,"请先登录谢谢喵","提示",JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        int selectedRow = resultTable.getSelectedRow();
+        if(selectedRow == -1){
+            JOptionPane.showMessageDialog(this, "请选择要借阅的书籍", "提示", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        int bookId = (Integer)tableModel.getValueAt(selectedRow,0);
+        String bookTitle = (String) tableModel.getValueAt(selectedRow,1);
+        int currentStock = (Integer)tableModel.getValueAt(selectedRow,5);
+
+        if(currentStock <= 0){
+            JOptionPane.showMessageDialog(this,"《" + bookTitle + "》库存不足","提示",JOptionPane.ERROR_MESSAGE);
+            return ;
+        }
+
+        // 确认对话框
+        int confirm = JOptionPane.showConfirmDialog(
+                this,
+                "确认借阅《" + bookTitle + "》吗？\n借阅期限：30天",
+                "确认借阅",
+                JOptionPane.YES_NO_OPTION
+        );
+
+        if(confirm == JOptionPane.YES_OPTION){
+            try {
+                //开启事务，包括借阅，更新数据等操作
+                DatabaseContext.getInstance().beginTransaction();
+
+                BookDAO tempBookDAO = BookDAO.getInstance();
+                BorrowDAO tempBorrowDAO = BorrowDAO.getInstance();
+
+                //限定每次借阅能且只能借阅一本书
+                boolean stockUpdated = tempBookDAO.updateStock(bookId,-1);
+                boolean recordCreated = tempBorrowDAO.borrowBook(currentUser.getId(),bookId,30);
+
+                if(stockUpdated && recordCreated){
+                    DatabaseContext.getInstance().commitTransaction();
+                    //更新表格并提示
+                    tableModel.setValueAt(currentStock-1,selectedRow,5);
+                    JOptionPane.showMessageDialog(this,"借阅成功喵","提示",JOptionPane.INFORMATION_MESSAGE);
+                }
+                else{
+                    DatabaseContext.getInstance().rollbackTransaction();
+                    JOptionPane.showMessageDialog(this,"借阅失败，请稍后重试喵");
+                }
+            }catch (SQLException e) {
+                DatabaseContext.getInstance().rollbackTransaction();
+                JOptionPane.showMessageDialog(this, "数据库错误：" + e.getMessage());
+            }
+
+        }
     }
 
     // 查询并更新表格
@@ -152,10 +221,13 @@ public class BookSearchPanel extends BasePage {
         }
     }
 
+    //这里的底层调用会查询所有的books表中数据并放回一个链表
     private void showDefault() {
         List<Book> books = bookDAO.showBooks_Default();
         tableModel.setRowCount(0);
         for (Book book : books) {
+            //添加id到名字的映射
+            Book.insertToMap(book);
             tableModel.addRow(new Object[]{
                     book.getId(),
                     book.getTitle(),
@@ -169,11 +241,12 @@ public class BookSearchPanel extends BasePage {
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            JFrame frame = new JFrame("Library Search System");
+            JFrame frame = new JFrame("Library SEARCH System");
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
             frame.setSize(600, 400);
             frame.setLocationRelativeTo(null);
-            frame.setContentPane(new BookSearchPanel(null,null)); // 测试时可传 null，实际使用时需实现 PageSwitcher
+            User testUser=new User(4,"TCWW","123456","admin");
+            frame.setContentPane(new BookSearchPanel(testUser,null)); // 测试时可传 null，实际使用时需传入主窗口的 PageSwitcher
             frame.setVisible(true);
         });
     }

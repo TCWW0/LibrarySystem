@@ -9,6 +9,7 @@ public class BorrowRecord {
     private Date borrowDate;
     private Date dueDate;
     private Date returnDate;
+    private String bookName;
 
     public BorrowRecord(int id, int userId, int bookId, Date borrowDate, Date dueDate, Date returnDate) {
         this.id = id;
@@ -26,6 +27,7 @@ public class BorrowRecord {
     public Date getBorrowDate() { return borrowDate; }
     public Date getDueDate() { return dueDate; }
     public Date getReturnDate() { return returnDate; }
+
 
     public String toString() {
         return "BorrowRecord{"+
