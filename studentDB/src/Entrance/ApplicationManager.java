@@ -21,6 +21,7 @@ public class ApplicationManager implements LoginSuccessListener,PageSwitcher {
     public enum PageType {
         SEARCH,
         BORROW,
+        STU_MANAGER,
         ADMIN_MANAGE
     }
 
@@ -79,11 +80,13 @@ public class ApplicationManager implements LoginSuccessListener,PageSwitcher {
         loginMenu.closeLoginWindow();
 
         //这里是回调的注册逻辑
-        registerPages(user);
+        //registerPages(user);
+        optRegisterPages(user);
 
         this.mainFrame.setVisible(true);
 
-        showPage(PageType.SEARCH);
+        if(user.getRole().equals("admin")) {showPage(PageType.ADMIN_MANAGE);}
+        else showPage(PageType.SEARCH);
     }
 
     //接下来所有在BasePage类派生出来的类都需要再这里进行注册使用(使用工厂)
@@ -99,10 +102,25 @@ public class ApplicationManager implements LoginSuccessListener,PageSwitcher {
         BasePage borrowPage = pageFactory.createPage(PageType.BORROW, user,this);
         pages.put(PageType.BORROW, borrowPage);
 
+        BasePage adminPage = pageFactory.createPage(PageType.ADMIN_MANAGE, user,this);
+        pages.put(PageType.ADMIN_MANAGE, adminPage);
+
         //确保所有页面都被添加到 mainPanel，否则 CardLayout 无法切换
         mainPanel.add(searchPage, PageType.SEARCH.toString());
         mainPanel.add(borrowPage, PageType.BORROW.toString());
+        mainPanel.add(adminPage, PageType.ADMIN_MANAGE.toString());
+    }
 
+    public void optRegisterPages(User user)
+    {
+        BasePage adminPage = pageFactory.createPage(PageType.ADMIN_MANAGE, user,this);
+        pages.put(PageType.ADMIN_MANAGE, adminPage);
+
+        BasePage studentPage = pageFactory.createPage(PageType.STU_MANAGER, user,this);
+        pages.put(PageType.STU_MANAGER, studentPage);
+
+        mainPanel.add(studentPage, PageType.STU_MANAGER.toString());
+        mainPanel.add(adminPage, PageType.STU_MANAGER.toString());
     }
 
     //复用原有的代码实现页面的切换

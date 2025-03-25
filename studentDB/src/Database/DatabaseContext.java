@@ -94,10 +94,11 @@ public class DatabaseContext {
         return false;
     }
 
-    private void delete(PreparedStatement pstmt) {
+    public boolean delete(PreparedStatement pstmt) {
         if (isValidStatement(pstmt)) {
-            operations.delete(pstmt);
+            return operations.delete(pstmt);
         }
+        return false;
     }
 
     private boolean find(PreparedStatement pstmt) {

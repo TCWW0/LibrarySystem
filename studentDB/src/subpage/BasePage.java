@@ -95,7 +95,7 @@ public abstract class BasePage extends JPanel{
         button.setOpaque(false);
         button.setMargin(new Insets(8, 20, 8, 20));
 
-        button.setPreferredSize(new Dimension(80,30));
+        button.setPreferredSize(new Dimension(100,30));
 
         return button;
     }

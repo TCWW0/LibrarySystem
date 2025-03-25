@@ -3,15 +3,13 @@ package factor;
 import Entrance.PageSwitcher;
 import Entrance.ApplicationManager;
 import Structure.User;
-import subpage.AdminManagePage;
-import subpage.BasePage;
-import subpage.BookSearchPanel;
-import subpage.BorrowPage;
+import subpage.*;
+
+import java.nio.file.AccessDeniedException;
 
 
 //项目结构相对简单，没有必要使用工厂来为难自己，简单工厂够用了
 public class SimplePageFactory implements PageFactory {
-
 
     @Override
     public BasePage createPage(ApplicationManager.PageType pageType, User currentUser, PageSwitcher pageSwitcher) {
@@ -21,11 +19,15 @@ public class SimplePageFactory implements PageFactory {
             case BORROW:
                 return BorrowPage.getInstance(currentUser, pageSwitcher);
             case ADMIN_MANAGE: // 新增管理员页面类型
-                if ("admin".equals(currentUser.getRole())) {
-                    return new AdminManagePage(currentUser, pageSwitcher);
-                } else {
-                    //throw new AccessDeniedException("权限不足");
+                if (!"admin".equals(currentUser.getRole())) {
+                    return null; // 或者抛出自定义异常
                 }
+                return new AdminManagePage(currentUser, pageSwitcher);
+            case STU_MANAGER:
+                if (!"student".equals(currentUser.getRole())) {
+                    return null;
+                }
+                return new StudentPage(currentUser, pageSwitcher);
             default:
                 throw new IllegalArgumentException("未知界面类型");
         }

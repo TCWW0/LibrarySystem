@@ -10,7 +10,7 @@ public class BookDAO {
     private static volatile BookDAO instance;
     private static final List<String> validColumns = List.of("title", "author", "category", "isbn");
     private final DatabaseContext dbContext;  // 依赖 DatabaseContext
-    private User currentUser;
+    private final User currentUser;
 
     // 私有构造函数，通过 DatabaseContext 注入依赖
     private BookDAO(DatabaseContext dbContext, User currentUser) {
@@ -120,6 +120,38 @@ public class BookDAO {
             try (ResultSet rs = dbContext.executeQuery(pstmt)) {
                 return rs.next() ? mapBookFromResultSet(rs) : null;
             }
+        }
+    }
+
+    public boolean addBook(Book book) throws SQLException {
+        String sql = "INSERT INTO books (title, author, category, isbn, stock) VALUES (?, ?, ?, ?, ?)";
+        try (PreparedStatement pstmt = dbContext.prepareStatement(sql)) {
+            pstmt.setString(1, book.getTitle());
+            pstmt.setString(2, book.getAuthor());
+            pstmt.setString(3, book.getCategory());
+            pstmt.setString(4, book.getIsbn());
+            pstmt.setInt(5, book.getStock());
+            return dbContext.update(pstmt);
+        }
+    }
+
+    public boolean deleteBook(int bookId) throws SQLException {
+        //判断该书是否存在现在仍被借阅的情况
+        String checkSql = "SELECT COUNT(*) FROM borrow_records WHERE book_id = ? AND return_date IS NULL";
+        try (PreparedStatement checkStmt = dbContext.prepareStatement(checkSql)) {
+            checkStmt.setInt(1, bookId);
+            try (ResultSet rs = checkStmt.executeQuery()) {
+                if (rs.next() && rs.getInt(1) > 0) {
+                    throw new SQLException("存在未归还记录");
+                }
+            }
+        }
+
+        // 2. 执行删除
+        String deleteSql = "DELETE FROM books WHERE id = ?";
+        try (PreparedStatement deleteStmt = dbContext.prepareStatement(deleteSql)) {
+            deleteStmt.setInt(1, bookId);
+            return dbContext.update(deleteStmt);
         }
     }
 

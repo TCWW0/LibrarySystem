@@ -44,7 +44,7 @@ public class BookSearchPanel extends BasePage {
         bookDAO = BookDAO.getInstance(user);
 
         showDefault();  //从构造中抽离，有效且合理，这里是子类的行为，不应该被放到组件的构造中
-        initAdminUI();          //基类构造顺序
+        //initAdminUI();          //基类构造顺序
     }
 
     @Override
@@ -77,6 +77,8 @@ public class BookSearchPanel extends BasePage {
         gbc.weightx = 0.1;
         gbc.fill = GridBagConstraints.BOTH; // 填充空间
         add(searchButton, gbc);
+        // 绑定查询事件
+        searchButton.addActionListener(e -> searchBooks());
 
         // 初始化表格模型
         tableModel = new DefaultTableModel(
@@ -131,20 +133,18 @@ public class BookSearchPanel extends BasePage {
         JButton borrowBtn = createStyledButton("借阅");
         //borrowBtn.addActionListener(e -> borrowSelectedBook());
         actionPanel.add(borrowBtn);
-        
-        JButton borrowRecordBtn = createStyledButton("借阅记录");
-        borrowRecordBtn.setPreferredSize(new Dimension(100,30));
-        borrowRecordBtn.addActionListener(e -> pageSwitcher.switchToPage(ApplicationManager.PageType.BORROW));
-        actionPanel.add(borrowRecordBtn);
-        borrowBtn.addActionListener(e -> borrowSelectedBook());
+
+
+//        JButton borrowRecordBtn = createStyledButton("借阅记录");
+//        borrowRecordBtn.setPreferredSize(new Dimension(100,30));
+//        borrowRecordBtn.addActionListener(e -> pageSwitcher.switchToPage(ApplicationManager.PageType.BORROW));
+//        actionPanel.add(borrowRecordBtn);
+//        borrowBtn.addActionListener(e -> borrowSelectedBook());
 
         gbc.gridy = 2;
         gbc.weighty = 0.0; // 固定高度
         gbc.fill = GridBagConstraints.HORIZONTAL;
         add(actionPanel, gbc);
-
-        // 绑定查询事件
-        searchButton.addActionListener(e -> searchBooks());
     }
 
     private void initAdminUI()
