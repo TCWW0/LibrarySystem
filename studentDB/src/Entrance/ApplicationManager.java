@@ -20,7 +20,8 @@ public class ApplicationManager implements LoginSuccessListener,PageSwitcher {
 
     public enum PageType {
         SEARCH,
-        BORROW
+        BORROW,
+        ADMIN_MANAGE
     }
 
     private final JFrame mainFrame;                                 //顶层窗口

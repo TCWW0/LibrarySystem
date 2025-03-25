@@ -1,5 +1,7 @@
 package Database;
 import Structure.Book;
+import Structure.User;
+
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -8,18 +10,20 @@ public class BookDAO {
     private static volatile BookDAO instance;
     private static final List<String> validColumns = List.of("title", "author", "category", "isbn");
     private final DatabaseContext dbContext;  // 依赖 DatabaseContext
+    private User currentUser;
 
     // 私有构造函数，通过 DatabaseContext 注入依赖
-    private BookDAO(DatabaseContext dbContext) {
+    private BookDAO(DatabaseContext dbContext, User currentUser) {
         this.dbContext = dbContext;
+        this.currentUser = currentUser;
     }
 
     // 获取单例实例（依赖 DatabaseContext 的单例）
-    public static BookDAO getInstance() {
+    public static BookDAO getInstance(User user) {
         if (instance == null) {
             synchronized (BookDAO.class) {
                 if (instance == null) {
-                    instance = new BookDAO(DatabaseContext.getInstance());
+                    instance = new BookDAO(DatabaseContext.getInstance(),user);
                 }
             }
         }
@@ -98,6 +102,8 @@ public class BookDAO {
 
     public boolean updateStock(int bookId,int delta)throws SQLException
     {
+        if(delta>0&&!"admin".equals(currentUser.getRole())) throw new SQLException("权限不足,你怎么来到这里的!?");
+
         String sql = "UPDATE books SET stock = stock + ? WHERE id = ?";
         try (PreparedStatement pstmt = dbContext.prepareStatement(sql)) {
             pstmt.setInt(1, delta);
@@ -119,7 +125,9 @@ public class BookDAO {
 
     public static void main(String[] args) {
         // 测试代码无需修改
-        BookDAO dao = BookDAO.getInstance();
+        User testStuUser = new User(3, "student2", "123456", "student");
+        //User testUser=new User(4,"TCWW","123456","admin");
+        BookDAO dao = BookDAO.getInstance(testStuUser);
         List<Book> books = dao.searchBooks_Exact("C++", "title");
         for (Book book : books) {
             System.out.println(book);

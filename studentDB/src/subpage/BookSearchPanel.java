@@ -34,15 +34,17 @@ public class BookSearchPanel extends BasePage {
     private JButton searchButton;
     private JTable resultTable;
     private DefaultTableModel tableModel;
-    private BookDAO bookDAO;
-    private User currentUser;
+    private final BookDAO bookDAO;
+    private final User currentUser;
+    private JPanel actionPanel;
 
     public BookSearchPanel(User user,PageSwitcher pageSwitcher) {
         super(pageSwitcher);
         this.currentUser = user;
-        bookDAO = BookDAO.getInstance();
+        bookDAO = BookDAO.getInstance(user);
 
         showDefault();  //从构造中抽离，有效且合理，这里是子类的行为，不应该被放到组件的构造中
+        initAdminUI();          //基类构造顺序
     }
 
     @Override
@@ -55,11 +57,11 @@ public class BookSearchPanel extends BasePage {
     protected void initUI() {
         setLayout(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(5, 5, 5, 5);
+        gbc.insets = new Insets(2, 5, 2, 5);
         gbc.fill = GridBagConstraints.HORIZONTAL;
 
         // 搜索框
-        searchField = createStyledTextField(20);
+        searchField = createStyledTextField(10);
         gbc.gridx = 0;
         gbc.gridy = 0;
         gbc.gridwidth = 1;
@@ -82,6 +84,7 @@ public class BookSearchPanel extends BasePage {
         );
         resultTable = createStyledTable();
         resultTable.setModel(tableModel);
+        resultTable.setBorder(BorderFactory.createEmptyBorder());
 
         // 设置表头样式
         JTableHeader header = resultTable.getTableHeader();
@@ -93,6 +96,8 @@ public class BookSearchPanel extends BasePage {
                 BorderFactory.createEmptyBorder(5, 5, 5, 5)            // 5像素内边距
         ));
 
+        setBackground(Color.WHITE);
+
         // 结果表格
         JScrollPane scrollPane = new JScrollPane(resultTable);
 
@@ -103,6 +108,7 @@ public class BookSearchPanel extends BasePage {
 
         scrollPane.setBackground(Color.WHITE);
         scrollPane.getViewport().setBackground(Color.WHITE);
+        scrollPane.setBorder(BorderFactory.createEmptyBorder());
 
         gbc.gridx = 0;
         gbc.gridy = 1;
@@ -116,7 +122,8 @@ public class BookSearchPanel extends BasePage {
         //这里保留一下，这里又是一次不注意的初始化顺序导致的错误，可以自己解开并去注释掉现有构造中的方法尝试
 
         // 操作按钮面板
-        JPanel actionPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        //JPanel actionPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        actionPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         actionPanel.setBackground(Color.WHITE);
 
 
@@ -126,6 +133,7 @@ public class BookSearchPanel extends BasePage {
         actionPanel.add(borrowBtn);
         
         JButton borrowRecordBtn = createStyledButton("借阅记录");
+        borrowRecordBtn.setPreferredSize(new Dimension(100,30));
         borrowRecordBtn.addActionListener(e -> pageSwitcher.switchToPage(ApplicationManager.PageType.BORROW));
         actionPanel.add(borrowRecordBtn);
         borrowBtn.addActionListener(e -> borrowSelectedBook());
@@ -137,6 +145,39 @@ public class BookSearchPanel extends BasePage {
 
         // 绑定查询事件
         searchButton.addActionListener(e -> searchBooks());
+    }
+
+    private void initAdminUI()
+    {
+        if(!"admin".equals(currentUser.getRole()))return;
+        JPanel adminPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        adminPanel.setBackground(Color.WHITE);
+
+        //库存的输入框
+        JTextField stockInput = createStyledTextField(6);
+        stockInput.setPreferredSize(new Dimension(90, 23));
+
+        JLabel stockLabel=new JLabel("库存增量: ");
+        stockLabel.setFont(CHINESE_FONT);
+        adminPanel.add(stockLabel);
+        adminPanel.add(stockInput);
+
+        JButton addStockBtn=createStyledButton("确定增加库存");
+        addStockBtn.addActionListener(e -> handleAddBook(stockInput));
+        adminPanel.add(addStockBtn);
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(2, 5, 2, 5);
+        gbc.gridx=0;
+        gbc.gridy=3;
+        gbc.gridwidth = 2;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        add(adminPanel, gbc);
+
+        //跳转按钮
+        JButton adminBtn = createStyledButton("管理");
+        adminBtn.addActionListener(e->pageSwitcher.switchToPage(ApplicationManager.PageType.ADMIN_MANAGE));
+        actionPanel.add(adminBtn);
     }
 
     public void borrowSelectedBook() {
@@ -173,7 +214,7 @@ public class BookSearchPanel extends BasePage {
                 //开启事务，包括借阅，更新数据等操作
                 DatabaseContext.getInstance().beginTransaction();
 
-                BookDAO tempBookDAO = BookDAO.getInstance();
+                BookDAO tempBookDAO = BookDAO.getInstance(currentUser);
                 BorrowDAO tempBorrowDAO = BorrowDAO.getInstance();
 
                 //限定每次借阅能且只能借阅一本书
@@ -221,7 +262,7 @@ public class BookSearchPanel extends BasePage {
         }
     }
 
-    //这里的底层调用会查询所有的books表中数据并放回一个链表
+    //这里的底层调用会查询所有的books表中数据并放回一个链表,同时对于初始化
     private void showDefault() {
         List<Book> books = bookDAO.showBooks_Default();
         tableModel.setRowCount(0);
@@ -239,14 +280,75 @@ public class BookSearchPanel extends BasePage {
         }
     }
 
+    private void handleAddBook(JTextField stockInput) {
+        int selectedRow = resultTable.getSelectedRow();
+        if(selectedRow == -1){
+            JOptionPane.showMessageDialog(this, "请先选择图书喵", "错误", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        // 验证输入是否为有效数字
+        String inputText = stockInput.getText().trim();
+        if (inputText.isEmpty() || !inputText.matches("\\d+")) {
+            JOptionPane.showMessageDialog(this, "请输入有效数字", "错误", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        int delta = Integer.parseInt(inputText);
+        if (delta <= 0) {
+            JOptionPane.showMessageDialog(this, "增量必须大于0", "错误", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        int bookId = (Integer) tableModel.getValueAt(selectedRow, 0);
+        String bookTitle = (String) tableModel.getValueAt(selectedRow, 1);
+        int currentStock = (Integer) tableModel.getValueAt(selectedRow, 5);
+
+        // 确认对话框
+        int confirm = JOptionPane.showConfirmDialog(
+                this,
+                "确认将《" + bookTitle + "》库存增加 " + delta + " 本吗？",
+                "确认操作",
+                JOptionPane.YES_NO_OPTION
+        );
+
+        if (confirm == JOptionPane.YES_OPTION) {
+            try {
+                DatabaseContext.getInstance().beginTransaction();
+                boolean success = BookDAO.getInstance(currentUser).updateStock(bookId, delta);
+                if (success) {
+                    DatabaseContext.getInstance().commitTransaction();
+                    tableModel.setValueAt(currentStock + delta, selectedRow, 5); // 更新界面
+                    JOptionPane.showMessageDialog(this, "库存更新成功");
+                } else {
+                    DatabaseContext.getInstance().rollbackTransaction();
+                    JOptionPane.showMessageDialog(this, "操作失败");
+                }
+            } catch (SQLException e) {
+                DatabaseContext.getInstance().rollbackTransaction();
+                JOptionPane.showMessageDialog(this, "数据库错误: " + e.getMessage());
+            }
+        }
+
+    }
+
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
             JFrame frame = new JFrame("Library SEARCH System");
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
             frame.setSize(600, 400);
             frame.setLocationRelativeTo(null);
-            User testUser=new User(4,"TCWW","123456","admin");
-            frame.setContentPane(new BookSearchPanel(testUser,null)); // 测试时可传 null，实际使用时需传入主窗口的 PageSwitcher
+
+            {
+//                User testStuUser = new User(3, "student2", "123456", "student");
+//                frame.setContentPane(new BookSearchPanel(testStuUser, null));
+            }
+
+            {
+                User testUser=new User(4,"TCWW","123456","admin");
+                frame.setContentPane(new BookSearchPanel(testUser, null)); // 测试时可传 null，实际使用时需传入主窗口的 PageSwitcher
+            }
+
             frame.setVisible(true);
         });
     }

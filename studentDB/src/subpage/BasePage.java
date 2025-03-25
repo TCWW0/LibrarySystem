@@ -23,9 +23,10 @@ import java.awt.*;
 public abstract class BasePage extends JPanel{
 
     //格式化文本,统一字体的配置
-    protected Font titlefont = new Font("微软雅黑", Font.BOLD, 16);
-    protected Font btnFont = new Font("微软雅黑", Font.BOLD, 16);
+    protected Font titlefont = new Font("微软雅黑", Font.BOLD, 14);
+    protected Font btnFont = new Font("微软雅黑", Font.BOLD, 14);
     protected Font bodyFont = new Font("宋体",Font.PLAIN,12);
+    protected static final Font CHINESE_FONT = new Font("Microsoft YaHei", Font.PLAIN, 14);
 
     protected PageSwitcher pageSwitcher;                    //页面切换回调接口
 
@@ -68,7 +69,7 @@ public abstract class BasePage extends JPanel{
                     g2.setColor(Color.WHITE);          // 默认状态
                 }
 
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 15, 15);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 7, 7);
                 super.paintComponent(g2);
                 g2.dispose();
             }
@@ -78,7 +79,7 @@ public abstract class BasePage extends JPanel{
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g2.setColor(new Color(180, 180, 180)); // 中灰色边框
-                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 15, 15);
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 7, 7);
                 g2.dispose();
             }
         };
@@ -93,6 +94,8 @@ public abstract class BasePage extends JPanel{
         button.setFocusPainted(false);
         button.setOpaque(false);
         button.setMargin(new Insets(8, 20, 8, 20));
+
+        button.setPreferredSize(new Dimension(80,30));
 
         return button;
     }
@@ -133,6 +136,8 @@ public abstract class BasePage extends JPanel{
         textField.setOpaque(false); // 保持半透明以显示自定义背景
 
         textField.setFont(DEFAULT_FONT);
+
+        setPreferredSize(new Dimension(200,25));
 
         return textField;
     }
