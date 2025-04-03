@@ -5,6 +5,7 @@ import Structure.Query;
 import Database.DatabaseContext;
 import Structure.User;
 import Database.LoginDAO;
+import factor.UIFactory;
 
 import javax.swing.*;
 import javax.swing.border.Border;
@@ -46,7 +47,6 @@ import java.awt.event.MouseEvent;
 
 
 public class LoginMenu {
-
     // 统一样式常量
     private static final Color MAIN_COLOR = new Color(0x333333); // 主色调
     private static final Color BG_COLOR = Color.WHITE;          // 背景色
@@ -60,7 +60,6 @@ public class LoginMenu {
     private JPasswordField passwordField;               //储存输入的密码数据
     private JComboBox<String> roleSelector;             //身份选择框
     private JButton loginButton, cancelButton;
-
     private User user;
 
     //private LoginSuccessListener successListener = null;
@@ -87,7 +86,6 @@ public class LoginMenu {
     这也是基于网格才能实现的
     这里的gridx和gridy都是基于逻辑上的相对位置的
      */
-
     public void addLoginItem()
     {
         GridBagConstraints gbc = new GridBagConstraints();
@@ -97,7 +95,8 @@ public class LoginMenu {
         gbc.gridx = 0;
         gbc.gridy = 0;
         String[]roles={"student","admin"};
-        roleSelector = new JComboBox<>(roles);
+        roleSelector= UIFactory.getInstance().createComboBox(roles);
+        //roleSelector = new JComboBox<>(roles);
         customizeComboBox(roleSelector);
         myFrame.add(roleSelector, gbc);
 
@@ -105,7 +104,8 @@ public class LoginMenu {
         gbc.gridx = 0;
         gbc.gridy = 1;
         //myFrame.add(new JLabel("用户名:"), gbc);
-        JLabel userLabel = new JLabel("用户名:");
+        //JLabel userLabel = new JLabel("用户名:");
+        JLabel userLabel=UIFactory.getInstance().createLabel("用户名");
         userLabel.setFont(LABEL_FONT);
         userLabel.setForeground(MAIN_COLOR);
         myFrame.add(userLabel, gbc);
@@ -118,7 +118,8 @@ public class LoginMenu {
         gbc.gridx = 0;
         gbc.gridy = 2;
         //myFrame.add(new JLabel("密码:"), gbc);
-        JLabel passwordLabel = new JLabel("密码:");
+        //JLabel passwordLabel = new JLabel("密码:");
+        JLabel passwordLabel=UIFactory.getInstance().createLabel("密码");
         passwordLabel.setFont(LABEL_FONT);
         passwordLabel.setForeground(MAIN_COLOR);
         myFrame.add(passwordLabel, gbc);
@@ -131,7 +132,8 @@ public class LoginMenu {
         gbc.gridx=0;
         gbc.gridy = 3;
         gbc.gridwidth = 1;
-        loginButton = createStyledButton("登录");
+        //loginButton = createStyledButton("登录");
+        loginButton=UIFactory.getInstance().createButton("登录");
         myFrame.add(loginButton, gbc);
 
         //绑定输入信息处理
@@ -139,7 +141,8 @@ public class LoginMenu {
 
         // 取消按钮
         gbc.gridx = 1;
-        cancelButton = createStyledButton("取消");
+        //cancelButton = createStyledButton("取消");
+        cancelButton = UIFactory.getInstance().createButton("取消");
         myFrame.add(cancelButton, gbc);
 
         cancelButton.addActionListener(e -> {
@@ -148,10 +151,10 @@ public class LoginMenu {
                 frame.dispose(); // 仅关闭当前窗口
             }
         });
-
-
         myFrame.setVisible(true);
     }
+
+
 
     //这个函数负责我们SQL语句的构建，不应该暴露给外界
     //考虑先在这里进行一次基础的检测，排除一些恶意的账号密码
@@ -188,7 +191,7 @@ public class LoginMenu {
             listener.loginSuccess(user);
         }
         else {
-            JOptionPane.showMessageDialog(null, "发生系统错误", "error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(null, "切换管理器未初始化", "error", JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -204,11 +207,15 @@ public class LoginMenu {
             case Query.match_Fail_Create:
                 JOptionPane.showMessageDialog(null, "初次登录，欢迎喵", "欢迎喵", JOptionPane.INFORMATION_MESSAGE);
                 break;
+            case Query.Error_account:
+                JOptionPane.showMessageDialog(null,"错误的管理员账号密码,请重新输入", "error", JOptionPane.ERROR_MESSAGE);
+                usernameField.setText("");
+                passwordField.setText("");
+                break;
             default:
                     break;
         }
     }
-
 
     private static void customizeComboBox(JComboBox<?> comboBox) {
         // 设置字体
@@ -243,7 +250,6 @@ public class LoginMenu {
     {
         this.myFrame.dispose();
     }
-
 
     protected JButton createStyledButton(String text) {
         Font btnFont = new Font("微软雅黑", Font.BOLD, 12);
@@ -308,9 +314,7 @@ public class LoginMenu {
         return button;
     }
 
-
     public static void main(String[] args) {
         SwingUtilities.invokeLater(LoginMenu::new);
     }
-
 }

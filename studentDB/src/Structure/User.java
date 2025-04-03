@@ -4,14 +4,17 @@ package Structure;
 //有一说一，这种对于结构的封装可以节省很多原子参数传递的复杂性
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class User {
     private int userId = -1;
     private final String username;
     private String password;
     private String role;
-    private List<Book> borrowedBooks = new ArrayList<Book>();
+
+    static private Map<Integer,String>idToName = new HashMap<>();
 
     // 构造方法
     //首次创建的新账户
@@ -55,19 +58,9 @@ public class User {
 
     public void setId(int userId) {this.userId = userId;}
 
-    //关于借阅的方法
-    public void borrowBook(Book book) {
-        borrowedBooks.add(book);
-    }
+    public static void insertToMap(User user) {User.idToName.put(user.getId(), user.getUsername());}
 
-    public List<Book> getBorrowedBooks() {
-        return borrowedBooks;
-    }
-
-    //这里通过主码ID进行一次移除
-    public boolean returnBook(int bookId) {
-        return borrowedBooks.removeIf(book-> bookId == book.getId());
-    }
+    public static String findById(int userId) {return User.idToName.get(userId);}
 
     //重写 toString 方便调试
     @Override

@@ -3,9 +3,13 @@ package subpage;
 import Database.AdminDAO;
 import Database.BookDAO;
 import Database.UserDAO;
+import Entrance.ApplicationManager;
 import Entrance.PageSwitcher;
 import Structure.Book;
 import Structure.User;
+import factor.PageFactory;
+import factor.SimplePageFactory;
+
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
@@ -18,21 +22,25 @@ import static javax.swing.JOptionPane.YES_OPTION;
 public class AdminManagePage extends BasePage {
     private final User currentUser;
     JTabbedPane tabbedPane;
+    PageFactory pageFactory;
 
-    public AdminManagePage(User user, PageSwitcher pageSwitcher) {
+    public AdminManagePage(User user, PageSwitcher pageSwitcher) throws SQLException {
         super(pageSwitcher);
         this.currentUser = user;
-
+        initUniqueUI();
     }
 
     @Override
-    protected void initUI() {
+    protected void initUI() {pageFactory=new SimplePageFactory();}
+
+    private void initUniqueUI() throws SQLException {
         setLayout(new BorderLayout());
 
         // 标签页切换
         tabbedPane = new JTabbedPane();
         tabbedPane.addTab("书籍管理", createBookManagementPanel());
         tabbedPane.addTab("用户管理", createUserManagementPanel());
+        tabbedPane.addTab("借阅记录",createBorrowRecordPanel());
 
         add(tabbedPane, BorderLayout.CENTER);
     }
@@ -105,6 +113,13 @@ public class AdminManagePage extends BasePage {
 
         refreshButton.addActionListener(e -> refreshBookTable(tableModel));
 
+        return panel;
+    }
+
+    private JPanel createBorrowRecordPanel() throws SQLException {
+        JPanel panel = new JPanel(new BorderLayout());
+        JPanel borrowPanel = pageFactory.createPage(ApplicationManager.PageType.BORROW,currentUser,pageSwitcher);
+        panel.add(borrowPanel, BorderLayout.CENTER);
         return panel;
     }
 
@@ -339,7 +354,11 @@ public class AdminManagePage extends BasePage {
             frame.setLocationRelativeTo(null);
 
             User testUser=new User(4,"TCWW","123456","admin");
-            frame.setContentPane(new AdminManagePage(testUser, null));
+            try {
+                frame.setContentPane(new AdminManagePage(testUser, null));
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
 
             frame.setVisible(true);
         });

@@ -59,6 +59,22 @@ public class BorrowDAO {
         }
     }
 
+    public List<BorrowRecord> getAllBorrowRecords() {
+        List<BorrowRecord> records = new ArrayList<>();
+        String sql = "SELECT * FROM borrow_records";
+        try (PreparedStatement pstmt = dbContext.prepareStatement(sql)) {
+            try (ResultSet rs = dbContext.executeQuery(pstmt)) { // 复用 executeQuery
+                while (rs.next()) {
+                    records.add(mapRecord(rs));
+                }
+            }
+            return records;
+        } catch (SQLException e) {
+            System.err.println("[查询失败] " + e.getMessage());
+            return new ArrayList<>();
+        }
+    }
+
     // 归还图书（无需直接操作 Connection）
     public boolean returnBook(int borrowId) {
         try {

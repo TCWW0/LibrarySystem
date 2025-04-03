@@ -2,6 +2,7 @@ package Database;
 import Structure.Book;
 import Structure.User;
 
+import javax.swing.*;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -152,6 +153,21 @@ public class BookDAO {
         try (PreparedStatement deleteStmt = dbContext.prepareStatement(deleteSql)) {
             deleteStmt.setInt(1, bookId);
             return dbContext.update(deleteStmt);
+        }
+    }
+
+    public void getAllBooks()
+    {
+        if(currentUser.getRole().equals("student")) JOptionPane.showMessageDialog(null,"你怎么来到这里的?");
+        String sql = "SELECT * FROM books";
+
+        try(PreparedStatement pstmt = dbContext.prepareStatement(sql);
+            ResultSet rs = dbContext.executeQuery(pstmt)){
+            while(rs.next()){
+                Book.insertToMap(mapBookFromResultSet(rs));
+            }
+        }catch (SQLException e) {
+            throw new RuntimeException(e);
         }
     }
 

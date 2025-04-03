@@ -133,13 +133,18 @@ public class BookSearchPanel extends BasePage {
         JButton borrowBtn = createStyledButton("借阅");
         //borrowBtn.addActionListener(e -> borrowSelectedBook());
         actionPanel.add(borrowBtn);
+        borrowBtn.addActionListener(e -> borrowSelectedBook());
 
+        //刷新数据
+        JButton refreshBtn = createStyledButton("刷新");
+        actionPanel.add(refreshBtn);
+        refreshBtn.addActionListener(e -> showDefault());
 
 //        JButton borrowRecordBtn = createStyledButton("借阅记录");
 //        borrowRecordBtn.setPreferredSize(new Dimension(100,30));
 //        borrowRecordBtn.addActionListener(e -> pageSwitcher.switchToPage(ApplicationManager.PageType.BORROW));
 //        actionPanel.add(borrowRecordBtn);
-//        borrowBtn.addActionListener(e -> borrowSelectedBook());
+
 
         gbc.gridy = 2;
         gbc.weighty = 0.0; // 固定高度
@@ -174,10 +179,10 @@ public class BookSearchPanel extends BasePage {
         gbc.fill = GridBagConstraints.HORIZONTAL;
         add(adminPanel, gbc);
 
-        //跳转按钮
-        JButton adminBtn = createStyledButton("管理");
-        adminBtn.addActionListener(e->pageSwitcher.switchToPage(ApplicationManager.PageType.ADMIN_MANAGE));
-        actionPanel.add(adminBtn);
+//跳转按钮
+//        JButton adminBtn = createStyledButton("管理");
+//        adminBtn.addActionListener(e->pageSwitcher.switchToPage(ApplicationManager.PageType.ADMIN_MANAGE));
+//        actionPanel.add(adminBtn);
     }
 
     public void borrowSelectedBook() {
@@ -346,7 +351,7 @@ public class BookSearchPanel extends BasePage {
 
             {
                 User testUser=new User(4,"TCWW","123456","admin");
-                frame.setContentPane(new BookSearchPanel(testUser, null)); // 测试时可传 null，实际使用时需传入主窗口的 PageSwitcher
+                frame.setContentPane(new BookSearchPanel(testUser, null));
             }
 
             frame.setVisible(true);

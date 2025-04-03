@@ -7,6 +7,7 @@ import factor.SimplePageFactory;
 
 import javax.swing.*;
 import java.awt.*;
+import java.sql.SQLException;
 
 //在这里去集成所有的用户页面交给对应的显示
 public class StudentPage extends BasePage {
@@ -15,7 +16,7 @@ public class StudentPage extends BasePage {
     private JTabbedPane tabbedPane;
     private SimplePageFactory pageFactory;
 
-    public StudentPage(User user,PageSwitcher pageSwitcher) {
+    public StudentPage(User user,PageSwitcher pageSwitcher) throws SQLException {
         super(pageSwitcher);
         this.currentUser = user;
         pageFactory = new SimplePageFactory();
@@ -30,8 +31,7 @@ public class StudentPage extends BasePage {
     @Override
     protected void initUI() {}
 
-    private void initSubPage()
-    {
+    private void initSubPage() throws SQLException {
         setLayout(new BorderLayout());
         tabbedPane = new JTabbedPane();
 
@@ -43,14 +43,14 @@ public class StudentPage extends BasePage {
         add(tabbedPane, BorderLayout.CENTER);
     }
 
-    private JPanel createSearchPanel() {
+    private JPanel createSearchPanel() throws SQLException {
         JPanel panel = new JPanel(new BorderLayout());
         JPanel searchPanel = pageFactory.createPage(ApplicationManager.PageType.SEARCH,currentUser,pageSwitcher);
         panel.add(searchPanel, BorderLayout.CENTER);
         return panel;
     }
 
-    private Component createBorrowRecordPanel() {
+    private JPanel createBorrowRecordPanel() throws SQLException {
         JPanel panel = new JPanel(new BorderLayout());
         JPanel borrowPanel = pageFactory.createPage(ApplicationManager.PageType.BORROW,currentUser,pageSwitcher);
         panel.add(borrowPanel, BorderLayout.CENTER);
@@ -64,8 +64,12 @@ public class StudentPage extends BasePage {
             frame.setSize(600, 400);
             frame.setLocationRelativeTo(null);
 
-            User testUser=new User(4,"TCWW","123456","admin");
-            frame.setContentPane(new StudentPage(testUser, null));
+            User testUser=new User(3,"TCWW","123456","admin");
+            try {
+                frame.setContentPane(new StudentPage(testUser, null));
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
 
             frame.setVisible(true);
         });

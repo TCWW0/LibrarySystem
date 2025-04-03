@@ -2,6 +2,8 @@ package Database;
 
 import Structure.User;
 import Structure.Query;
+
+import javax.swing.*;
 import java.sql.*;
 
 public class LoginDAO {
@@ -23,7 +25,14 @@ public class LoginDAO {
 
                 return Query.match_Suc_Login;
             } else {
-                return createNewUser(user);
+                if(user.getRole().equals("admin"))
+                {
+                    //JOptionPane.showMessageDialog(null,"管理员账号错误,请重新输入","error",JOptionPane.ERROR_MESSAGE);
+                    return Query.Error_account;
+                }
+                else {
+                    return createNewUser(user);
+                }
             }
         } catch (SQLException e) {
             System.err.println("[登录失败] " + e.getMessage());

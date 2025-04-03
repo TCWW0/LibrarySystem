@@ -86,41 +86,46 @@ public class ApplicationManager implements LoginSuccessListener,PageSwitcher {
         this.mainFrame.setVisible(true);
 
         if(user.getRole().equals("admin")) {showPage(PageType.ADMIN_MANAGE);}
-        else showPage(PageType.SEARCH);
+        else showPage(PageType.STU_MANAGER);
     }
 
     //接下来所有在BasePage类派生出来的类都需要再这里进行注册使用(使用工厂)
     //由于现有的登录页面设计为了组合结构，所以无法在这里嵌入
     //对于现有的查询页面，目前设计只有一个简单的查询demo，之后会嵌入到BasePage控件中进行管理
-    public void registerPages(User user)
-    {
-        // 创建并存储页面对象,这里的类修改了下继承关系使得对这里的使用兼容
-        //BasePage searchPage = new BookSearchPanel(user,this);
-        BasePage searchPage = pageFactory.createPage(PageType.SEARCH,user,this);
-        pages.put(PageType.SEARCH, searchPage);
-
-        BasePage borrowPage = pageFactory.createPage(PageType.BORROW, user,this);
-        pages.put(PageType.BORROW, borrowPage);
-
-        BasePage adminPage = pageFactory.createPage(PageType.ADMIN_MANAGE, user,this);
-        pages.put(PageType.ADMIN_MANAGE, adminPage);
-
-        //确保所有页面都被添加到 mainPanel，否则 CardLayout 无法切换
-        mainPanel.add(searchPage, PageType.SEARCH.toString());
-        mainPanel.add(borrowPage, PageType.BORROW.toString());
-        mainPanel.add(adminPage, PageType.ADMIN_MANAGE.toString());
-    }
+    //使用新的页面控制，废弃
+//    public void registerPages(User user)
+//    {
+//        // 创建并存储页面对象,这里的类修改了下继承关系使得对这里的使用兼容
+//        //BasePage searchPage = new BookSearchPanel(user,this);
+//        BasePage searchPage = pageFactory.createPage(PageType.SEARCH,user,this);
+//        pages.put(PageType.SEARCH, searchPage);
+//
+//        BasePage borrowPage = pageFactory.createPage(PageType.BORROW, user,this);
+//        pages.put(PageType.BORROW, borrowPage);
+//
+//        BasePage adminPage = pageFactory.createPage(PageType.ADMIN_MANAGE, user,this);
+//        pages.put(PageType.ADMIN_MANAGE, adminPage);
+//
+//        //确保所有页面都被添加到 mainPanel，否则 CardLayout 无法切换
+//        mainPanel.add(searchPage, PageType.SEARCH.toString());
+//        mainPanel.add(borrowPage, PageType.BORROW.toString());
+//        mainPanel.add(adminPage, PageType.ADMIN_MANAGE.toString());
+//    }
 
     public void optRegisterPages(User user)
     {
-        BasePage adminPage = pageFactory.createPage(PageType.ADMIN_MANAGE, user,this);
-        pages.put(PageType.ADMIN_MANAGE, adminPage);
+        if(user.getRole().equals("admin")) {
+            BasePage adminPage = pageFactory.createPage(PageType.ADMIN_MANAGE, user,this);
+            pages.put(PageType.ADMIN_MANAGE, adminPage);
+            System.out.println("Adding component: " + adminPage);
+            mainPanel.add(adminPage, PageType.ADMIN_MANAGE.toString());
+        } else if (user.getRole().equals("student")) {
+            BasePage studentPage = pageFactory.createPage(PageType.STU_MANAGER, user,this);
+            pages.put(PageType.STU_MANAGER, studentPage);
 
-        BasePage studentPage = pageFactory.createPage(PageType.STU_MANAGER, user,this);
-        pages.put(PageType.STU_MANAGER, studentPage);
-
-        mainPanel.add(studentPage, PageType.STU_MANAGER.toString());
-        mainPanel.add(adminPage, PageType.STU_MANAGER.toString());
+            System.out.println("Adding component: " + studentPage);
+            mainPanel.add(studentPage, PageType.STU_MANAGER.toString());
+        }
     }
 
     //复用原有的代码实现页面的切换

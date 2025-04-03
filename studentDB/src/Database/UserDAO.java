@@ -24,8 +24,8 @@ public class UserDAO {
         return instance;
     }
 
-    public List<User> getAllUsers() throws SQLException {
-        List<User> users = new ArrayList<>();
+    public void getAllUsers(){
+        //List<User> users = new ArrayList<>();
         String sql = "SELECT id, username, role FROM users";
 
         try (PreparedStatement pstmt = dbContext.prepareStatement(sql);
@@ -37,10 +37,13 @@ public class UserDAO {
                         "", // 不返回密码
                         rs.getString("role")
                 );
-                users.add(user);
+                //users.add(user);
+                User.insertToMap(user);
             }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
         }
-        return users;
+        //return users;
     }
 
 //    public boolean toggleUserStatus(int userId, boolean active) throws SQLException {

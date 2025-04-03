@@ -1,7 +1,9 @@
 package subpage;
 
+import Database.BookDAO;
 import Database.BorrowDAO;
 import Database.DatabaseContext;
+import Database.UserDAO;
 import Entrance.ApplicationManager;
 import Entrance.PageSwitcher;
 import Structure.Book;
@@ -11,6 +13,7 @@ import Structure.User;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Objects;
 
@@ -22,15 +25,26 @@ public class BorrowPage extends BasePage {
     private DefaultTableModel tableModel;
     private static volatile BorrowPage instance;
 
-    private BorrowPage(User user, PageSwitcher pageSwitcher) {
+    private BorrowPage(User user, PageSwitcher pageSwitcher){
         super(pageSwitcher);
         this.currentUser = user;
         this.borrowDAO=BorrowDAO.getInstance();
         initUI();
-        loadBorrowRecords();
+        initUserTable();
+        recordQuery();
     }
 
-    public static BorrowPage getInstance(User user, PageSwitcher pageSwitcher) {
+    //只有在管理员登录时才加载一次映射，否则只添加一个自己的映射
+    private void initUserTable(){
+        if(currentUser.getRole().equals("student"))User.insertToMap(currentUser);
+        else if (currentUser.getRole().equals("admin"))
+        {
+            UserDAO.getInstance().getAllUsers();
+            BookDAO.getInstance(currentUser).getAllBooks();
+        }
+    }
+
+    public static BorrowPage getInstance(User user, PageSwitcher pageSwitcher) throws SQLException {
         if (instance == null) {
             synchronized (BorrowPage.class) {
                 if (instance == null) {
@@ -44,13 +58,13 @@ public class BorrowPage extends BasePage {
     //每次刷新当前用户的借阅记录
     @Override
     public void onPageShown() {
-        loadBorrowRecords();
+        recordQuery();
     }
 
     //初始化子控件
     @Override
     protected void initUI() {
-        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.CENTER)); // 右对齐
+        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT)); // 右对齐
 
         //初始化标题
         JLabel title=new JLabel("借阅记录喵");
@@ -74,25 +88,28 @@ public class BorrowPage extends BasePage {
         add(scrollPane1, BorderLayout.CENTER);
 
         //对应的操作按钮
-        JButton returnBookBtn = createStyledButton("归还图书喵");
+        JButton returnBookBtn = createStyledButton("归还图书");
         returnBookBtn.addActionListener(e->handleReturnBook());
         btnPanel.add(returnBookBtn);
 
-        //添加返回按钮
-        JButton backBtn=createStyledButton("返回查询页面");
-        backBtn.addActionListener(e -> {
-            if(pageSwitcher!=null){
-                pageSwitcher.switchToPage(ApplicationManager.PageType.SEARCH);
-            } else {
-                JOptionPane.showMessageDialog(this,"还没实现抱歉喵");
-            }
+        JButton refreshBtn = createStyledButton("刷新");
+        refreshBtn.addActionListener(e->{
+            loadBorrowRecords();
         });
-        //add(backBtn, BorderLayout.EAST);
-        btnPanel.add(backBtn,BorderLayout.SOUTH);
+        btnPanel.add(refreshBtn);
+//添加返回按钮
+//        JButton backBtn=createStyledButton("返回查询页面");
+//        backBtn.addActionListener(e -> {
+//            if(pageSwitcher!=null){
+//                pageSwitcher.switchToPage(ApplicationManager.PageType.SEARCH);
+//            } else {
+//                JOptionPane.showMessageDialog(this,"还没实现抱歉喵");
+//            }
+//        });
+//        add(backBtn, BorderLayout.EAST);
+//        btnPanel.add(backBtn,BorderLayout.SOUTH);
 
         this.add(btnPanel, BorderLayout.SOUTH);
-
-
     }
 
     private void handleReturnBook() {
@@ -141,17 +158,23 @@ public class BorrowPage extends BasePage {
         }
     }
 
-
     //需要注意的是，这里的方法实现是基于当前登录系统的用户进行一个查询的
     private void loadBorrowRecords() {
+        recordQuery();
+    }
+
+    private void recordQuery() {
         DefaultTableModel model = (DefaultTableModel) borrowTable.getModel();
         model.setRowCount(0); // 清空旧数据
-
-        List<BorrowRecord> records = borrowDAO.getBorrowRecords(currentUser.getId());
+        List<BorrowRecord> records=null;
+        if(currentUser.getRole().equals("student"))records = borrowDAO.getBorrowRecords(currentUser.getId());
+        else if (currentUser.getRole().equals("admin"))records = borrowDAO.getAllBorrowRecords();
+        else records = borrowDAO.getBorrowRecords(1);//这里理论上不可能进入，但一定进入了有对应的显式也好定位
         for (BorrowRecord record : records) {
             model.addRow(new Object[]{
                     record.getId(),
-                    this.currentUser.getUsername(),
+                    User.findById(record.getUserId()),      //替代下面的语句
+                    //this.currentUser.getUsername(),
                     Book.findById(record.getBookId()),
                     record.getBorrowDate(),
                     record.getDueDate(),
@@ -164,7 +187,8 @@ public class BorrowPage extends BasePage {
     {
         SwingUtilities.invokeLater(() -> {
             // 创建测试用户
-            User testUser = new User(4,"TCWW", "123456","admin");
+            User testUser = new User(3,"TCWW", "123456","admin");
+            User testUser1 = new User(4,"test1", "123456","student");
 
             // 创建窗口
             JFrame frame = new JFrame("Borrow Page Test");
@@ -172,11 +196,10 @@ public class BorrowPage extends BasePage {
             frame.setSize(600, 400);
             frame.setLocationRelativeTo(null);
 
-            // 添加 BorrowPage 到窗口
-            BorrowPage borrowPage = new BorrowPage(testUser,null);
+            BorrowPage borrowPage=new BorrowPage(testUser,null);
             frame.setContentPane(borrowPage);
 
-            borrowPage.loadBorrowRecords();
+            borrowPage.recordQuery();
 
             // 显示窗口
             frame.setVisible(true);
